@@ -48,4 +48,9 @@ func main() {
 	 fmt.Println(slice2)
 	 fmt.Println(sort.IntsAreSorted(slice2))
 	fmt.Println(slice2)
-}
+
+	var courses = []string{"Js", "TS", "GO", "Rust", "C++"}
+	index := 2
+	courses = append(courses[:index], courses[index+1:]...)
+	fmt.Println(courses)
+}	
