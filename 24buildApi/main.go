@@ -85,4 +85,27 @@ func createOneCourse(w http.ResponseWriter, r *http.Request) {
 	// generate random number
 	rand.NewSource(time.Now().UnixNano())
 	course.CourseId = strconv.Itoa(rand.Intn(100))
+
+	courses = append(courses, course)
+	json.NewEncoder(w).Encode(course)
+	return
+}
+
+func deleteCourse(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Delete course by id")
+
+	courseId := mux.Vars(r)["courseId"]
+
+	// loop, id, remove (index, index+1)
+
+	for index, course := range courses {
+		if course.CourseId == courseId {
+			courses = append(courses[:index], courses[index+1:]...)
+			break
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	message := map[string]string{"message": fmt.Sprintf("The course with ID %v has been removed", courseId)}
+
+	json.NewEncoder(w).Encode(message)
 }
