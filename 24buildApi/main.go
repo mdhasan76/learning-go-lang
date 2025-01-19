@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
 
 type Course struct {
 	CourseId    string  `json:"courseId"`
@@ -24,4 +28,16 @@ func (c *Course) IsEmpty() bool {
 
 func main() {
 	fmt.Println("Hello")
+}
+
+// server home route
+
+func serveHome(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("<h1>Welcome to api by learn code online</h1>"))
+}
+
+func getAllCourses(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Get all courses")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(courses)
 }
