@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -33,6 +34,20 @@ func (c *Course) IsEmpty() bool {
 
 func main() {
 	fmt.Println("Hello")
+	courses = append(courses, Course{CourseId: "1", CourseName: "Javascript", CoursePrice: 12, Author: &Author{FullName: "Md Hasan Mia", Website: "w3schools.com"}})
+	r := mux.NewRouter()
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Welcome to api by learn code online ddd"))
+		// w.Header().Set("Content-Type", "application/json")
+		// json.NewEncoder(w).Encode("{status: 'Success', statusCode: 200, message:'server is running on 4000 port'}")
+	}).Methods("GET")
+	r.HandleFunc("/courses", getAllCourses).Methods("GET")
+	r.HandleFunc("/course/{courseId}", getOneCourse).Methods("GET")
+	r.HandleFunc("/course/create", createOneCourse).Methods("POST")
+	r.HandleFunc("/course/{courseId}", deleteCourse)
+
+	log.Fatal(http.ListenAndServe(":4000", r))
+
 }
 
 // server home route
