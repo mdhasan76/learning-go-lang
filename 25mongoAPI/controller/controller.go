@@ -48,19 +48,18 @@ func init() {
 
 // insert 1 record
 
-func insertOneMovie(movie model.Netflix) {
+func insertOneMovie(movie model.Netflix) primitive.M {
 	inserted, err := collection.InsertOne(context.Background(), movie)
 	if err != nil {
 		log.Fatal(err)
 	}
+	var newMovie primitive.M
+	err = collection.FindOne(context.Background(), bson.M{"_id": inserted.InsertedID}).Decode(&newMovie)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Inserted 1 movie in db with id:", inserted.InsertedID)
-}
-
-func getOneMovie(movieId string) {
-	id := bson.M{"_id": movieId}
-	filter := bson.M{"_id": id}
-	result := collection.FindOne(context.Background(), filter)
-	fmt.Println(result)
+	return newMovie
 }
 
 func updateOneMovie(movieId string) {
@@ -119,28 +118,45 @@ func getAllMovies() []primitive.M {
 	return movies
 }
 
+func getOneMovie(movieId string) (primitive.M, string) {
+	var movie primitive.M
+	id, _ := primitive.ObjectIDFromHex(movieId)
+	filter := bson.M{"_id": id}
+	res := collection.FindOne(context.Background(), filter)
+	err := res.Decode(&movie)
+	if err != nil {
+		return movie, "Data not found"
+	}
+	return movie, ""
+}
+
 // Actual controller -file
 
 func GetOneMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Content-Type", "application/json")
 	movieId := mux.Vars(r)["id"]
-	getOneMovie(movieId)
+	data, msg := getOneMovie(movieId)
+	if msg != "" {
+		json.NewEncoder(w).Encode(map[string]string{"message": msg})
+		return
+	}
+	json.NewEncoder(w).Encode(data)
 }
 
 func GetMyAllMovies(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Content-Type", "application/json")
 	allMovies := getAllMovies()
 	json.NewEncoder(w).Encode(allMovies)
 }
 
 func CreateMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Allow-Control-Allow-Methods", "POST")
 
 	var movie model.Netflix
 	_ = json.NewDecoder(r.Body).Decode(&movie)
-	insertOneMovie(movie)
-	json.NewEncoder(w).Encode(movie)
+	newMovie := insertOneMovie(movie)
+	json.NewEncoder(w).Encode(newMovie)
 }
 
 func MarkAsWatched(w http.ResponseWriter, r *http.Request) {

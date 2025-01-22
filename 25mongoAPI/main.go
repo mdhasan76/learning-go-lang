@@ -13,5 +13,5 @@ func main() {
 
 	fmt.Println("Hey Server is starting...")
 	log.Fatal(http.ListenAndServe(":4000", r))
-	fmt.Printf("Listening Server is on 4000 port")
+	fmt.Println("Listening Server is on 4000 port")
 }
