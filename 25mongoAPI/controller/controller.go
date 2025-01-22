@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"mongoAPI/model"
+	"net/http"
 
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,6 +56,13 @@ func insertOneMovie(movie model.Netflix) {
 	fmt.Println("Inserted 1 movie in db with id:", inserted.InsertedID)
 }
 
+func getOneMovie(movieId string) {
+	id := bson.M{"_id": movieId}
+	filter := bson.M{"_id": id}
+	result := collection.FindOne(context.Background(), filter)
+	fmt.Println(result)
+}
+
 func updateOneMovie(movieId string) {
 	id, err := primitive.ObjectIDFromHex(movieId)
 	if err != nil {
@@ -81,11 +91,81 @@ func deleteOneMovie(movieId string) {
 	fmt.Println("Movie is deleted successfully", result)
 }
 
-func deleteAllMovie() int64 {
+func deleteAllMovies() int64 {
 	result, err := collection.DeleteMany(context.Background(), bson.D{{}})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Deleted all Movie successfully. Total deleted count is: ", result.DeletedCount, nil)
 	return result.DeletedCount
+}
+
+func getAllMovies() []primitive.M {
+	cur, err := collection.Find(context.Background(), bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var movies []primitive.M
+	for cur.Next(context.Background()) {
+		var movie bson.M
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		movies = append(movies, movie)
+	}
+	defer cur.Close(context.Background())
+	return movies
+}
+
+// Actual controller -file
+
+func GetOneMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	movieId := mux.Vars(r)["id"]
+	getOneMovie(movieId)
+}
+
+func GetMyAllMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	allMovies := getAllMovies()
+	json.NewEncoder(w).Encode(allMovies)
+}
+
+func CreateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Allow-Control-Allow-Methods", "POST")
+
+	var movie model.Netflix
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	insertOneMovie(movie)
+	json.NewEncoder(w).Encode(movie)
+}
+
+func MarkAsWatched(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Allow-Control-Allow-Methods", "PUT")
+
+	param := mux.Vars(r)["id"]
+	updateOneMovie(param)
+	json.NewEncoder(w).Encode(param)
+}
+
+func DeleteOneMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Allow-Control-Allow-Methods", "PATCH")
+
+	movieId := mux.Vars(r)["id"]
+	deleteOneMovie(movieId)
+	json.NewEncoder(w).Encode(movieId)
+}
+
+func DeleteAllMovies(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/x-www-form-urlencode")
+	w.Header().Set("Allow-Control-Allow-Methods", "DELETE")
+
+	count := deleteAllMovies()
+	w.Write([]byte(fmt.Sprintf("All movies Deleted successfully. and deleted count is: %v", count)))
 }
